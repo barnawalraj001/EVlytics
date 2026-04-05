@@ -8,6 +8,7 @@ import {
     Wind,
     Info,
     Loader2,
+    Battery,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { rangeVsSpeed } from "@/lib/mock-data";
+import { rangeAt100Soc, formatKmOneDecimal } from "@/lib/range-normalization";
 import { useRangePredictionStore } from "@/stores/range-prediction-store";
 import {
     LineChart,
@@ -82,9 +84,14 @@ export default function RangePredictionPage() {
     const [loading, setLoading] = useState(false);
 
     const predictedKm = useRangePredictionStore((s) => s.predictedRangeKm);
+    const lastInputs = useRangePredictionStore((s) => s.lastInputs);
     const setPrediction = useRangePredictionStore((s) => s.setPrediction);
 
     const showResult = predictedKm !== null;
+    const rangeAt100 =
+        predictedKm !== null && lastInputs != null
+            ? rangeAt100Soc(predictedKm, lastInputs.soc)
+            : null;
 
     async function handlePredict() {
         const socNum = Number.parseFloat(soc);
@@ -127,13 +134,6 @@ export default function RangePredictionPage() {
         }
     }
 
-    const displayRange =
-        predictedKm !== null
-            ? predictedKm % 1 === 0
-                ? `${Math.round(predictedKm)}`
-                : predictedKm.toFixed(1)
-            : "";
-
     return (
         <div className="space-y-8">
             {/* Header */}
@@ -143,7 +143,8 @@ export default function RangePredictionPage() {
                     Range Prediction
                 </h2>
                 <p className="text-muted-foreground mt-1">
-                    Estimate your EV range based on current driving conditions.
+                    The model predicts <strong className="text-foreground">remaining</strong> range at
+                    your current SOC — we also show an estimated full range at 100% (same conditions).
                 </p>
             </div>
 
@@ -252,29 +253,62 @@ export default function RangePredictionPage() {
 
                 {/* Result */}
                 <div className="space-y-6">
-                    {showResult ? (
+                    {showResult && lastInputs && rangeAt100 != null ? (
                         <Card className="border-primary/30 glow-green">
-                            <CardContent className="p-8 text-center">
-                                <div className="inline-flex items-center justify-center h-20 w-20 rounded-2xl bg-primary/10 mb-6">
-                                    <Gauge className="h-10 w-10 text-primary" />
+                            <CardContent className="p-6 sm:p-8 text-left space-y-5">
+                                <div className="flex items-center justify-between gap-4 flex-wrap">
+                                    <Badge variant="success">Predicted Range</Badge>
+                                    {/* <span className="text-xs text-muted-foreground">
+                                        Remaining = model output · Full = normalized to 100% SOC
+                                    </span> */}
                                 </div>
-                                <div className="mb-2">
-                                    <Badge variant="success" className="mb-4">
-                                        AI Prediction
-                                    </Badge>
+
+                                <div className="grid sm:grid-cols-1 gap-4">
+                                    <div className="rounded-2xl bg-accent/30 border border-border/50 p-5 space-y-3">
+                                        <div className="flex items-center gap-2 text-muted-foreground text-xs font-medium uppercase tracking-wide">
+                                            <Battery className="h-4 w-4 text-primary" />
+                                            Remaining range
+                                        </div>
+                                        <p className="text-4xl font-bold gradient-text tabular-nums">
+                                            {formatKmOneDecimal(predictedKm)} km
+                                        </p>
+                                        <p className="text-sm text-muted-foreground leading-relaxed">
+                                            You can go{" "}
+                                            <strong className="text-foreground">
+                                                {formatKmOneDecimal(predictedKm)} km
+                                            </strong>{" "}
+                                            with current charge ({lastInputs.soc}% SOC).
+                                        </p>
+                                    </div>
+
+                                    {/* <div className="rounded-2xl bg-primary/10 border border-primary/25 p-5 space-y-3">
+                                        <div className="flex items-center gap-2 text-primary text-xs font-medium uppercase tracking-wide">
+                                            <Zap className="h-4 w-4" />
+                                            Est. full range @ 100% SOC
+                                        </div>
+                                        <p className="text-3xl font-bold text-primary tabular-nums">
+                                            {formatKmOneDecimal(rangeAt100)} km
+                                        </p>
+                                        <p className="text-sm text-muted-foreground leading-relaxed">
+                                            Estimated full range under these conditions if the pack
+                                            were at 100% (
+                                            <span className="font-mono text-xs">
+                                                remaining ÷ (SOC ÷ 100)
+                                            </span>
+                                            ).
+                                        </p>
+                                    </div> */}
                                 </div>
-                                <h3 className="text-5xl font-bold gradient-text mb-2">
-                                    {displayRange} km
-                                </h3>
-                                <p className="text-lg text-muted-foreground">
-                                    Predicted Range
-                                </p>
-                                <div className="mt-6 p-4 rounded-xl bg-accent/30 text-sm text-muted-foreground leading-relaxed">
-                                    <Info className="h-4 w-4 inline mr-2 text-primary" />
-                                    Based on your inputs, the model estimates a range of {displayRange}{" "}
-                                    km. Adjust speed, temperature conditions, or AC level and run
-                                    predict again to compare scenarios.
-                                </div>
+
+                                {/* <div className="p-4 rounded-xl bg-accent/20 text-sm text-muted-foreground leading-relaxed flex gap-2">
+                                    <Info className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+                                    <span>
+                                        The model predicts <strong className="text-foreground">how far
+                                        you can go now</strong>, not the brochure “full tank” range.
+                                        The second figure extrapolates to 100% SOC for comparison with
+                                        your Profile rated range (e.g. Battery Health).
+                                    </span>
+                                </div> */}
                             </CardContent>
                         </Card>
                     ) : (
@@ -299,7 +333,7 @@ export default function RangePredictionPage() {
                             <ul className="space-y-2 text-sm text-muted-foreground">
                                 <li className="flex items-start gap-2">
                                     <span className="text-primary mt-0.5">•</span>
-                                    Maintaining speed at 80-90 km/h offers optimal range efficiency
+                                    Maintaining speed at 60-70 km/h offers optimal range efficiency
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="text-primary mt-0.5">•</span>

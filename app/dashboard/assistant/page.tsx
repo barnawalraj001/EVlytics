@@ -98,7 +98,7 @@ export default function EVAssistantPage() {
         try {
             // Map the history appropriately
             const historyForAi = updatedMessages.map(m => ({ role: m.role, content: m.content }));
-            const aiContent = await askEVAssistant(historyForAi as any);
+            const aiContent = await askEVAssistant(historyForAi);
             
             const aiResponse: ChatMessage = {
                 id: Date.now() + 1,
@@ -113,10 +113,26 @@ export default function EVAssistantPage() {
             setMessages((prev) => [...prev, aiResponse]);
         } catch (error) {
             console.error("Error calling EV Assistant:", error);
+            const fallback =
+                "I'm having trouble connecting right now. Please try again later.";
+            let content = fallback;
+            if (error instanceof Error) {
+                if (
+                    error.message.includes("OPENAI_API_KEY") ||
+                    error.message.includes("missing OPENAI")
+                ) {
+                    content =
+                        "The assistant can’t run because **OPENAI_API_KEY** is not set on the server. Add it to **`.env.local`** (or `.env`) in the project root, then restart `npm run dev`. See `.env.example`.";
+                } else if (error.message.startsWith("HTTP ")) {
+                    content = `${fallback} (${error.message})`;
+                } else if (error.message.length > 0 && error.message.length < 280) {
+                    content = error.message;
+                }
+            }
             const errorResponse: ChatMessage = {
                 id: Date.now() + 1,
                 role: "assistant",
-                content: "I'm having trouble connecting right now. Please try again later.",
+                content,
                 timestamp: new Date().toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",

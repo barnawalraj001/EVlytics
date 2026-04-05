@@ -1,10 +1,23 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
+import Link from "next/link";
 import { Battery, Info, AlertTriangle, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { degradationProjection } from "@/lib/mock-data";
+import {
+    computeBatteryHealthPercent,
+    computeEfficiencyPercent,
+    computeEffectiveCapacityKwh,
+    getBatteryHealthTier,
+    getTierCopy,
+} from "@/lib/battery-health";
+import { rangeAt100Soc, formatKmOneDecimal } from "@/lib/range-normalization";
+import { BatteryHealthBanner } from "@/components/battery-health-banner";
+import { useProfile } from "@/hooks/use-profile";
+import { useRangePredictionStore } from "@/stores/range-prediction-store";
 import {
     AreaChart,
     Area,
@@ -34,7 +47,7 @@ function CircularProgress({ value }: { value: number }) {
                     cx="64"
                     cy="64"
                     r="60"
-                    stroke="url(#progressGradient)"
+                    stroke="url(#progressGradientBattery)"
                     strokeWidth="8"
                     fill="none"
                     strokeLinecap="round"
@@ -43,7 +56,13 @@ function CircularProgress({ value }: { value: number }) {
                     className="transition-all duration-1000 ease-out"
                 />
                 <defs>
-                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <linearGradient
+                        id="progressGradientBattery"
+                        x1="0%"
+                        y1="0%"
+                        x2="100%"
+                        y2="0%"
+                    >
                         <stop offset="0%" stopColor="hsl(142 72% 50%)" />
                         <stop offset="100%" stopColor="hsl(160 70% 50%)" />
                     </linearGradient>
@@ -58,71 +77,243 @@ function CircularProgress({ value }: { value: number }) {
 }
 
 export default function BatteryHealthPage() {
+    const { profile } = useProfile();
+    const predictedRangeKm = useRangePredictionStore((s) => s.predictedRangeKm);
+    const lastInputs = useRangePredictionStore((s) => s.lastInputs);
+    const rangeHydrated = useRangePredictionStore((s) => s.hydrated);
+
+    const fullRangeKm = profile.vehicle.range;
+    const ratedCapacityKwh = profile.vehicle.batteryCapacity;
+
+    const { healthPercent, efficiencyPercent, rangeAt100, effectiveKwh, tier, hasData } =
+        useMemo(() => {
+            const soc = lastInputs?.soc;
+            if (
+                !rangeHydrated ||
+                predictedRangeKm === null ||
+                soc === undefined ||
+                fullRangeKm <= 0
+            ) {
+                return {
+                    healthPercent: null as number | null,
+                    efficiencyPercent: null as number | null,
+                    rangeAt100: null as number | null,
+                    effectiveKwh: null as number | null,
+                    tier: null as ReturnType<typeof getBatteryHealthTier> | null,
+                    hasData: false,
+                };
+            }
+
+            const r100 = rangeAt100Soc(predictedRangeKm, soc);
+            if (r100 === null) {
+                return {
+                    healthPercent: null,
+                    efficiencyPercent: null,
+                    rangeAt100: null,
+                    effectiveKwh: null,
+                    tier: null,
+                    hasData: false,
+                };
+            }
+
+            const hp = computeBatteryHealthPercent(fullRangeKm, r100);
+            const effIdx = computeEfficiencyPercent(fullRangeKm, r100);
+            if (hp === null || effIdx === null) {
+                return {
+                    healthPercent: null,
+                    efficiencyPercent: null,
+                    rangeAt100: null,
+                    effectiveKwh: null,
+                    tier: null,
+                    hasData: false,
+                };
+            }
+            const t = getBatteryHealthTier(hp);
+            const cap = computeEffectiveCapacityKwh(ratedCapacityKwh, hp);
+            return {
+                healthPercent: hp,
+                efficiencyPercent: effIdx,
+                rangeAt100: r100,
+                effectiveKwh: cap,
+                tier: t,
+                hasData: true,
+            };
+        }, [
+            rangeHydrated,
+            predictedRangeKm,
+            lastInputs,
+            fullRangeKm,
+            ratedCapacityKwh,
+        ]);
+
+    const displayHealth = healthPercent != null ? Math.round(healthPercent) : null;
+    const tierMeta = tier ? getTierCopy(tier) : null;
+
+    const badgeVariant =
+        tier === "poor" || tier === "critical"
+            ? "destructive"
+            : tier === "moderate" || tier === "aging"
+              ? "warning"
+              : "success";
+
     return (
         <div className="space-y-8">
-            {/* Header */}
             <div>
                 <h2 className="text-2xl font-bold flex items-center gap-2">
                     <Battery className="h-6 w-6 text-primary" />
                     Battery Health
                 </h2>
                 <p className="text-muted-foreground mt-1">
-                    Monitor your battery condition and degradation forecast.
+                    Health uses your last prediction: remaining range at SOC → normalized to 100% SOC,
+                    then compared to your rated full range in Profile.
                 </p>
             </div>
 
             <div className="grid lg:grid-cols-3 gap-6">
-                {/* Circular Progress */}
                 <Card className="lg:col-span-1">
                     <CardContent className="p-8 flex flex-col items-center justify-center text-center">
-                        <CircularProgress value={92} />
+                        {hasData && displayHealth != null ? (
+                            <CircularProgress value={Math.min(100, Math.max(0, displayHealth))} />
+                        ) : (
+                            <div className="h-40 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                                <span className="text-4xl font-bold">—</span>
+                                <p className="text-xs max-w-[12rem]">
+                                    Add full range in Profile and run a prediction on Range
+                                    Prediction.
+                                </p>
+                            </div>
+                        )}
 
                         <div className="mt-6 space-y-3 w-full">
+                            {hasData &&
+                                predictedRangeKm != null &&
+                                lastInputs != null &&
+                                rangeAt100 != null && (
+                                    <>
+                                        {/* <div className="flex items-center justify-between p-3 rounded-xl bg-accent/30">
+                                            <span className="text-sm text-muted-foreground">
+                                                Remaining range (model)
+                                            </span>
+                                            <span className="text-sm font-semibold">
+                                                {formatKmOneDecimal(predictedRangeKm)} km
+                                            </span>
+                                        </div> */}
+                                        {/* <div className="flex items-center justify-between p-3 rounded-xl bg-accent/30">
+                                            <span className="text-sm text-muted-foreground">
+                                                SOC at prediction
+                                            </span>
+                                            <span className="text-sm font-semibold">
+                                                {lastInputs.soc}%
+                                            </span>
+                                        </div> */}
+                                        <div className="flex items-center justify-between p-3 rounded-xl bg-primary/10 border border-primary/15">
+                                            <span className="text-sm text-muted-foreground">
+                                                Est. full range
+                                            </span>
+                                            <span className="text-sm font-semibold text-primary">
+                                                {formatKmOneDecimal(rangeAt100)} km
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between p-3 rounded-xl bg-accent/30">
+                                            <span className="text-sm text-muted-foreground">
+                                                Efficiency vs rated range
+                                            </span>
+                                            <span className="text-sm font-semibold">
+                                                {efficiencyPercent != null
+                                                    ? `${Math.round(efficiencyPercent)}%`
+                                                    : "—"}
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
                             <div className="flex items-center justify-between p-3 rounded-xl bg-accent/30">
                                 <span className="text-sm text-muted-foreground">
-                                    Current Capacity
+                                    Current capacity (est.)
                                 </span>
-                                <span className="text-sm font-semibold">68.1 kWh</span>
+                                <span className="text-sm font-semibold">
+                                    {effectiveKwh != null
+                                        ? `${effectiveKwh} kWh`
+                                        : "—"}
+                                </span>
                             </div>
                             <div className="flex items-center justify-between p-3 rounded-xl bg-accent/30">
                                 <span className="text-sm text-muted-foreground">
-                                    Original Capacity
+                                    Rated capacity (Profile)
                                 </span>
-                                <span className="text-sm font-semibold">74.0 kWh</span>
+                                <span className="text-sm font-semibold">
+                                    {ratedCapacityKwh > 0 ? `${ratedCapacityKwh} kWh` : "—"}
+                                </span>
                             </div>
-                            <div className="flex items-center justify-between p-3 rounded-xl bg-primary/10">
+                            {/* <div className="flex items-center justify-between p-3 rounded-xl bg-primary/10">
                                 <span className="text-sm text-muted-foreground">
-                                    Est. Replacement
+                                    Est. window (guidance)
                                 </span>
-                                <Badge variant="success">2.5 years</Badge>
-                            </div>
+                                {tierMeta ? (
+                                    <Badge variant={badgeVariant}>{tierMeta.replacementBadge}</Badge>
+                                ) : (
+                                    <Badge variant="secondary">—</Badge>
+                                )}
+                            </div> */}
                         </div>
+
+                        {hasData &&
+                            healthPercent != null &&
+                            predictedRangeKm != null &&
+                            lastInputs != null &&
+                            rangeAt100 != null && (
+                                <p className="text-[10px] text-muted-foreground mt-4 leading-relaxed text-left w-full">
+                                    <strong className="text-foreground/90">How we compute it:</strong>{" "}
+                                    remaining range ÷ (SOC ÷ 100) = est. full range at 100% SOC (
+                                    {formatKmOneDecimal(rangeAt100)} km). Health & efficiency index =
+                                    that value ÷ your rated full range ({Math.round(fullRangeKm)} km).
+                                    Effective capacity ≈ rated kWh × health.
+                                </p>
+                            )}
+
+                        {!hasData && (
+                            <div className="mt-4 flex flex-col gap-2 w-full">
+                                <Button asChild variant="outline" size="sm" className="w-full">
+                                    <Link href="/dashboard/profile">Open Profile</Link>
+                                </Button>
+                                <Button asChild variant="default" size="sm" className="w-full">
+                                    <Link href="/dashboard/range">Run range prediction</Link>
+                                </Button>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
-                {/* Status Cards */}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Status Banner */}
-                    <Card className="border-emerald-500/20 bg-emerald-500/5">
-                        <CardContent className="p-6 flex items-start gap-4">
-                            <div className="h-10 w-10 rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                                <CheckCircle className="h-5 w-5 text-emerald-500" />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-emerald-400">
-                                    Battery in Good Condition
-                                </h3>
-                                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                                    Your battery health is at 92%, which is excellent for a vehicle
-                                    with 14,500 km driven. At the current rate of degradation, your
-                                    battery is estimated to retain 80% capacity for another{" "}
-                                    <strong className="text-foreground">2.5 years</strong>.
-                                </p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    {hasData && healthPercent != null && tier ? (
+                        <BatteryHealthBanner healthPercent={healthPercent} tier={tier} />
+                    ) : (
+                        <Card className="border-dashed border-border/60 bg-card/40">
+                            <CardContent className="p-6 flex items-start gap-4">
+                                <div className="h-10 w-10 rounded-xl bg-muted flex items-center justify-center flex-shrink-0">
+                                    <Info className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                                <div className="text-left">
+                                    <h3 className="font-semibold text-foreground">
+                                        No battery health estimate yet
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                                        Set your vehicle&apos;s <strong>full range</strong> and{" "}
+                                        <strong>battery capacity (kWh)</strong> in Profile, then run
+                                        the ML prediction on{" "}
+                                        <Link
+                                            href="/dashboard/range"
+                                            className="text-primary underline-offset-2 hover:underline"
+                                        >
+                                            Range Prediction
+                                        </Link>
+                                        .                                         We normalize remaining range using your SOC, then compare to
+                                        your rated full range.
+                                    </p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
 
-                    {/* Degradation Info */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -181,7 +372,6 @@ export default function BatteryHealthPage() {
                 </div>
             </div>
 
-            {/* Degradation Trend Chart */}
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">

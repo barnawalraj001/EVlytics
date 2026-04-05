@@ -1,0 +1,9 @@
+# Netlify + Next.js (App Router)
+# Do NOT set "Publish directory" to `.next` in the Netlify UI — that treats the build as a
+# static folder and breaks `/_next/static/chunks/*` (404s). This plugin wires the Next runtime.
+
+[build]
+  command = "npm run build"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

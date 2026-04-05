@@ -1,36 +1,37 @@
-import { openai } from "./openai";
-import { systemPrompt } from "./systemPrompt";
 import { buildStoresContextForLlm } from "@/stores/llm-context";
-import {
-    overviewMetrics,
-    batteryHealthTrend,
-    rangeVsSpeed,
-    degradationProjection,
-} from "./mock-data";
 
-export async function askEVAssistant(chatHistory: { role: "user" | "assistant" | "system", content: string }[]) {
+export type AssistantChatMessage = {
+    role: "user" | "assistant" | "system";
+    content: string;
+};
+
+/**
+ * Calls the server-side assistant API. OpenAI runs only on the server — never bundle the key in the browser.
+ */
+export async function askEVAssistant(
+    chatHistory: AssistantChatMessage[]
+): Promise<string> {
     const storesContext = buildStoresContextForLlm();
-    const datasetContext = `${storesContext}
 
-User's EV Data Context (demo / chart data):
-- Overview Metrics: ${JSON.stringify(overviewMetrics)}
-- Battery Health Trend: ${JSON.stringify(batteryHealthTrend)}
-- Range Vs Speed: ${JSON.stringify(rangeVsSpeed)}
-- Degradation Projection: ${JSON.stringify(degradationProjection)}
-`;
-
-    // Ensure system prompts are at the top, then append the rest of the chat history
-    const messages: any[] = [
-        { role: "system", content: systemPrompt },
-        { role: "system", content: datasetContext },
-        ...chatHistory.map(m => ({ role: m.role, content: m.content }))
-    ];
-    
-    // Using parameter: gpt-5-mini
-    const response = await openai.chat.completions.create({
-        model: "gpt-5-mini",
-        messages: messages
+    const res = await fetch("/api/assistant", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            messages: chatHistory,
+            storesContext,
+        }),
     });
-    
-    return response.choices[0].message.content || "I couldn't process that request.";
+
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(
+            typeof err.error === "string" ? err.error : `HTTP ${res.status}`
+        );
+    }
+
+    const data = (await res.json()) as { reply?: string };
+    if (typeof data.reply !== "string") {
+        throw new Error("Invalid assistant response");
+    }
+    return data.reply;
 }

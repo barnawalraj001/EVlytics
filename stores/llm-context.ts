@@ -1,3 +1,4 @@
+import { rangeAt100Soc } from "@/lib/range-normalization";
 import { useProfileStore } from "./profile-store";
 import { useRangePredictionStore } from "./range-prediction-store";
 
@@ -12,7 +13,13 @@ export function buildStoresContextForLlm(): string {
     const rangePrediction =
         rp.predictedRangeKm != null && rp.lastInputs != null
             ? {
+                  /** Remaining km at current SOC (model output). */
                   predictedRangeKm: rp.predictedRangeKm,
+                  /** Estimated full range at 100% SOC under same conditions. */
+                  rangeAt100SocKm: rangeAt100Soc(
+                      rp.predictedRangeKm,
+                      rp.lastInputs.soc
+                  ),
                   lastInputs: rp.lastInputs,
                   predictedAt: rp.predictedAt,
               }
