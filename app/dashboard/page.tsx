@@ -20,6 +20,7 @@ import {
     batteryHealthTrend,
     emissionsComparison,
 } from "@/lib/mock-data";
+import { useProfile } from "@/hooks/use-profile";
 import {
     LineChart,
     Line,
@@ -66,12 +67,18 @@ const chartColors = {
 // ];
 
 export default function DashboardOverview() {
+    const { profile } = useProfile();
+    const greetName =
+        profile.user.name?.trim().split(/\s+/)[0] ||
+        profile.user.email?.split("@")[0] ||
+        "there";
+
     return (
         <div className="space-y-8">
             {/* Page heading */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold">Welcome back, Raj 👋</h2>
+                    <h2 className="text-2xl font-bold">Welcome back, {greetName} 👋</h2>
                     <p className="text-muted-foreground mt-1">
                         Here&apos;s an overview of your EV performance analytics.
                     </p>
@@ -79,7 +86,11 @@ export default function DashboardOverview() {
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 border border-primary/20">
                         <Car className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium">Tesla Model 3 LR</span>
+                        <span className="text-sm font-medium">
+                            {profile.vehicle.model?.trim()
+                                ? profile.vehicle.model
+                                : "Set vehicle in Profile"}
+                        </span>
                     </div>
                     {/* <Badge variant="success" className="gap-1">
                         <PlugZap className="h-3 w-3" />

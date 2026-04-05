@@ -9,6 +9,21 @@ const config: Config = {
     ],
     theme: {
         extend: {
+            keyframes: {
+                "fade-in-up": {
+                    "0%": { opacity: "0", transform: "translateY(16px)" },
+                    "100%": { opacity: "1", transform: "translateY(0)" },
+                },
+                "fade-in": {
+                    "0%": { opacity: "0" },
+                    "100%": { opacity: "1" },
+                },
+            },
+            animation: {
+                "fade-in-up":
+                    "fade-in-up 0.65s cubic-bezier(0.22, 1, 0.36, 1) both forwards",
+                "fade-in": "fade-in 0.2s ease-out both forwards",
+            },
             colors: {
                 border: "hsl(var(--border))",
                 input: "hsl(var(--input))",

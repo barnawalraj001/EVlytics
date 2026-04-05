@@ -6,11 +6,10 @@ import {
     ArrowRight,
     Zap,
     ChevronRight,
-    Github,
-    Twitter,
-    Linkedin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SiteNav } from "@/components/site-nav";
+import { LandingFooter } from "@/components/landing-footer";
 import { landingFeatures, howItWorksSteps } from "@/lib/mock-data";
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -22,39 +21,7 @@ const iconMap: Record<string, React.ReactNode> = {
 export default function LandingPage() {
     return (
         <div className="min-h-screen">
-            {/* Navigation */}
-            <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/40">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                                <Zap className="h-5 w-5 text-primary" />
-                            </div>
-                            <span className="text-xl font-bold gradient-text">EVlytics</span>
-                        </div>
-                        <div className="hidden md:flex items-center gap-8">
-                            <a
-                                href="#features"
-                                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                                Features
-                            </a>
-                            <a
-                                href="#how-it-works"
-                                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                            >
-                                How It Works
-                            </a>
-                            <Link href="/dashboard">
-                                <Button size="sm" className="gap-2">
-                                    Try Dashboard
-                                    <ArrowRight className="h-4 w-4" />
-                                </Button>
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+            <SiteNav />
 
             {/* Hero Section */}
             <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8 overflow-hidden">
@@ -89,7 +56,7 @@ export default function LandingPage() {
                                 <ArrowRight className="h-5 w-5" />
                             </Button>
                         </Link>
-                        <a href="#features">
+                        <a href="/about">
                             <Button variant="outline" size="lg" className="gap-2 text-base px-8">
                                 Learn More
                                 <ChevronRight className="h-5 w-5" />
@@ -98,7 +65,7 @@ export default function LandingPage() {
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-3 gap-8 mt-20 max-w-lg mx-auto">
+                    {/* <div className="grid grid-cols-3 gap-8 mt-20 max-w-lg mx-auto">
                         {[
                             { value: "10K+", label: "Active Users" },
                             { value: "2.5M", label: "km Tracked" },
@@ -113,7 +80,7 @@ export default function LandingPage() {
                                 </div>
                             </div>
                         ))}
-                    </div>
+                    </div> */}
                 </div>
             </section>
 
@@ -208,85 +175,7 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* Footer */}
-            <footer className="border-t border-border/40 py-12 px-4 sm:px-6 lg:px-8">
-                <div className="max-w-6xl mx-auto">
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-                        <div>
-                            <div className="flex items-center gap-2 mb-4">
-                                <div className="h-8 w-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                                    <Zap className="h-5 w-5 text-primary" />
-                                </div>
-                                <span className="text-lg font-bold gradient-text">
-                                    EVlytics
-                                </span>
-                            </div>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                                AI-powered intelligence platform for electric vehicle owners.
-                                Smarter decisions for a sustainable future.
-                            </p>
-                        </div>
-                        <div>
-                            <h4 className="font-semibold mb-4">Product</h4>
-                            <ul className="space-y-2 text-sm text-muted-foreground">
-                                <li className="hover:text-foreground transition-colors cursor-pointer">
-                                    Dashboard
-                                </li>
-                                <li className="hover:text-foreground transition-colors cursor-pointer">
-                                    Range Prediction
-                                </li>
-                                <li className="hover:text-foreground transition-colors cursor-pointer">
-                                    Battery Health
-                                </li>
-                                <li className="hover:text-foreground transition-colors cursor-pointer">
-                                    CO₂ Savings
-                                </li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className="font-semibold mb-4">Company</h4>
-                            <ul className="space-y-2 text-sm text-muted-foreground">
-                                <li className="hover:text-foreground transition-colors cursor-pointer">
-                                    About
-                                </li>
-                                <li className="hover:text-foreground transition-colors cursor-pointer">
-                                    Blog
-                                </li>
-                                <li className="hover:text-foreground transition-colors cursor-pointer">
-                                    Careers
-                                </li>
-                                <li className="hover:text-foreground transition-colors cursor-pointer">
-                                    Contact
-                                </li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className="font-semibold mb-4">Legal</h4>
-                            <ul className="space-y-2 text-sm text-muted-foreground">
-                                <li className="hover:text-foreground transition-colors cursor-pointer">
-                                    Privacy Policy
-                                </li>
-                                <li className="hover:text-foreground transition-colors cursor-pointer">
-                                    Terms of Service
-                                </li>
-                                <li className="hover:text-foreground transition-colors cursor-pointer">
-                                    Cookie Policy
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div className="border-t border-border/40 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <p className="text-sm text-muted-foreground">
-                            © 2026 EVlytics. All rights reserved.
-                        </p>
-                        <div className="flex items-center gap-4">
-                            <Github className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
-                            <Twitter className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
-                            <Linkedin className="h-5 w-5 text-muted-foreground hover:text-foreground transition-colors cursor-pointer" />
-                        </div>
-                    </div>
-                </div>
-            </footer>
+            <LandingFooter />
         </div>
     );
 }

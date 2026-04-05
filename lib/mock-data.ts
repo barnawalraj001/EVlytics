@@ -110,61 +110,21 @@ export const rangeVsSpeed: RangeVsSpeed[] = [
 // ── Battery Degradation Projection ────────────────────────────
 export const degradationProjection: DegradationPoint[] = [
     { year: "Year 0", capacity: 100 },
-    { year: "Year 1", capacity: 97 },
-    { year: "Year 2", capacity: 94 },
-    { year: "Year 3", capacity: 92 },
-    { year: "Year 4", capacity: 89 },
-    { year: "Year 5", capacity: 86 },
-    { year: "Year 6", capacity: 83 },
-    { year: "Year 7", capacity: 80 },
-    { year: "Year 8", capacity: 78 },
+    { year: "Year 1", capacity: 95 },
+    { year: "Year 2", capacity: 90 },
+    { year: "Year 3", capacity: 85 },
+    { year: "Year 4", capacity: 80 },
+    { year: "Year 5", capacity: 75 },
 ];
 
 // ── CO₂ Monthly Data ──────────────────────────────────────────
 export const co2MonthlyComparison: EmissionsComparison[] = [
+    { category: "Nov", ICE: 215, EV: 50 },
+    { category: "Dec", ICE: 230, EV: 52 },
     { category: "Jan", ICE: 180, EV: 45 },
     { category: "Feb", ICE: 165, EV: 42 },
     { category: "Mar", ICE: 190, EV: 48 },
-    { category: "Apr", ICE: 175, EV: 44 },
-    { category: "May", ICE: 200, EV: 50 },
-    { category: "Jun", ICE: 185, EV: 46 },
-];
 
-// ── Chat Messages ─────────────────────────────────────────────
-export const chatMessages: ChatMessage[] = [
-    {
-        id: 1,
-        role: "assistant",
-        content:
-            "Hello! I'm your EV Assistant powered by AI. I can help you with range optimization, battery care tips, charging strategies, and sustainability insights. How can I help you today?",
-        timestamp: "10:00 AM",
-    },
-    {
-        id: 2,
-        role: "user",
-        content: "How can I improve my EV range?",
-        timestamp: "10:01 AM",
-    },
-    {
-        id: 3,
-        role: "assistant",
-        content:
-            "Great question! Here are some proven strategies to maximize your EV range:\n\n1. **Reduce Speed** – Driving at 90 km/h instead of 120 km/h can increase range by up to 20%.\n2. **Minimize AC Usage** – Using climate control sparingly can save 10-15% of battery.\n3. **Use Regenerative Braking** – Maximize energy recovery during deceleration.\n4. **Check Tire Pressure** – Properly inflated tires reduce rolling resistance.\n5. **Plan Routes** – Use elevation-aware navigation to avoid unnecessary climbs.\n\nReducing speed and minimizing AC usage alone can increase range by up to 12%.",
-        timestamp: "10:01 AM",
-    },
-    {
-        id: 4,
-        role: "user",
-        content: "What about battery health? How do I keep it in good condition?",
-        timestamp: "10:03 AM",
-    },
-    {
-        id: 5,
-        role: "assistant",
-        content:
-            "Battery longevity depends on a few key habits:\n\n• **Avoid 100% charge regularly** – Keep daily charging between 20-80%.\n• **Minimize fast charging** – DC fast charging generates heat, which accelerates degradation.\n• **Avoid extreme temperatures** – Park in shade during summer and use preconditioning in winter.\n• **Drive smoothly** – Aggressive acceleration draws more current and creates heat.\n\nYour current battery health is at **92%**, which is excellent for your vehicle's age. Based on your usage patterns, I estimate your battery will retain 80% capacity for another **2.5 years**.",
-        timestamp: "10:03 AM",
-    },
 ];
 
 // ── Sidebar Navigation ────────────────────────────────────────
@@ -176,6 +136,7 @@ export interface NavItem {
 
 export const sidebarNavItems: NavItem[] = [
     { label: "Overview", href: "/dashboard", icon: "LayoutDashboard" },
+    { label: "Profile", href: "/dashboard/profile", icon: "User" },
     { label: "Range Prediction", href: "/dashboard/range", icon: "Gauge" },
     { label: "Battery Health", href: "/dashboard/battery", icon: "Battery" },
     { label: "CO₂ Savings", href: "/dashboard/savings", icon: "Leaf" },

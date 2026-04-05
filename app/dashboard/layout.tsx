@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Toaster } from "sonner";
 import {
     LayoutDashboard,
     Gauge,
@@ -13,7 +14,6 @@ import {
     ChevronLeft,
     ChevronRight,
     User,
-    Settings,
     LogOut,
     Bell,
     Menu,
@@ -22,24 +22,30 @@ import {
 import { cn } from "@/lib/utils";
 import { sidebarNavItems } from "@/lib/mock-data";
 import { Button } from "@/components/ui/button";
+import { ProfileProvider } from "@/components/providers/profile-provider";
+import { useProfile } from "@/hooks/use-profile";
 
 const iconMap: Record<string, React.ReactNode> = {
     LayoutDashboard: <LayoutDashboard className="h-5 w-5" />,
+    User: <User className="h-5 w-5" />,
     Gauge: <Gauge className="h-5 w-5" />,
     Battery: <Battery className="h-5 w-5" />,
     Leaf: <Leaf className="h-5 w-5" />,
     MessageSquare: <MessageSquare className="h-5 w-5" />,
 };
 
-export default function DashboardLayout({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
+function DashboardShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const { profile } = useProfile();
+
+    const userInitial = useMemo(() => {
+        const n = profile.user.name?.trim();
+        if (n?.length) return n.charAt(0).toUpperCase();
+        return profile.user.email?.charAt(0).toUpperCase() || "?";
+    }, [profile.user.name, profile.user.email]);
 
     return (
         <div className="min-h-screen flex bg-background">
@@ -62,7 +68,11 @@ export default function DashboardLayout({
                 )}
             >
                 {/* Logo */}
-                <div className="h-16 flex items-center gap-3 px-4 border-b border-border/50">
+                <Link
+                    href="/"
+                    onClick={() => setMobileOpen(false)}
+                    className="h-16 flex items-center gap-3 px-4 border-b border-border/50 hover:bg-accent/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
+                >
                     <div className="h-9 w-9 rounded-lg bg-primary/20 flex items-center justify-center flex-shrink-0">
                         <Zap className="h-5 w-5 text-primary" />
                     </div>
@@ -71,7 +81,7 @@ export default function DashboardLayout({
                             EVlytics
                         </span>
                     )}
-                </div>
+                </Link>
 
                 {/* Navigation */}
                 <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
@@ -164,13 +174,13 @@ export default function DashboardLayout({
                                 className="flex items-center gap-3 p-1.5 rounded-xl hover:bg-accent/50 transition-colors"
                             >
                                 <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/60 to-emerald-600/60 flex items-center justify-center text-white text-sm font-semibold">
-                                    R
+                                    {userInitial}
                                 </div>
                                 {!collapsed && (
                                     <div className="hidden sm:block text-left">
-                                        <p className="text-sm font-medium">Raj Barnawal</p>
+                                        <p className="text-sm font-medium">{profile.user.name}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            raj@evlytics.io
+                                            {profile.user.email}
                                         </p>
                                     </div>
                                 )}
@@ -184,20 +194,24 @@ export default function DashboardLayout({
                                     />
                                     <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border/50 rounded-xl shadow-xl z-50 py-2">
                                         <div className="px-4 py-3 border-b border-border/50">
-                                            <p className="text-sm font-medium">Raj Barnawal</p>
+                                            <p className="text-sm font-medium">{profile.user.name}</p>
                                             <p className="text-xs text-muted-foreground">
-                                                raj@evlytics.io
+                                                {profile.user.email}
                                             </p>
                                         </div>
                                         <div className="py-1">
-                                            <button className="flex items-center gap-3 w-full px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors">
+                                            <Link
+                                                href="/dashboard/profile"
+                                                onClick={() => setUserMenuOpen(false)}
+                                                className="flex items-center gap-3 w-full px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+                                            >
                                                 <User className="h-4 w-4" />
                                                 Profile
-                                            </button>
-                                            <button className="flex items-center gap-3 w-full px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors">
+                                            </Link>
+                                            {/* <button className="flex items-center gap-3 w-full px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors">
                                                 <Settings className="h-4 w-4" />
                                                 Settings
-                                            </button>
+                                            </button> */}
                                         </div>
                                         <div className="border-t border-border/50 py-1">
                                             <button className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors">
@@ -216,5 +230,18 @@ export default function DashboardLayout({
                 <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
             </div>
         </div>
+    );
+}
+
+export default function DashboardLayout({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    return (
+        <ProfileProvider>
+            <DashboardShell>{children}</DashboardShell>
+            <Toaster richColors position="top-right" theme="dark" />
+        </ProfileProvider>
     );
 }

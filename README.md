@@ -104,7 +104,7 @@ npm start
 
 ## ⚠️ Note
 
-This is a **frontend-only** application. All data is static mock data — no backend, API calls, or authentication logic is included. This is designed as a realistic UI/UX showcase.
+This is a **frontend-only** application. All data is static mock data  no backend, API calls, or authentication logic is included. This is designed as a realistic UI/UX showcase.
 
 ## 📝 License
 
