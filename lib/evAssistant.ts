@@ -1,15 +1,18 @@
 import { openai } from "./openai";
 import { systemPrompt } from "./systemPrompt";
-import { 
-    overviewMetrics, 
-    batteryHealthTrend, 
-    rangeVsSpeed, 
-    degradationProjection 
+import { buildStoresContextForLlm } from "@/stores/llm-context";
+import {
+    overviewMetrics,
+    batteryHealthTrend,
+    rangeVsSpeed,
+    degradationProjection,
 } from "./mock-data";
 
 export async function askEVAssistant(chatHistory: { role: "user" | "assistant" | "system", content: string }[]) {
-    const datasetContext = `User Name: Raj barnawal
-User's EV Data Context:
+    const storesContext = buildStoresContextForLlm();
+    const datasetContext = `${storesContext}
+
+User's EV Data Context (demo / chart data):
 - Overview Metrics: ${JSON.stringify(overviewMetrics)}
 - Battery Health Trend: ${JSON.stringify(batteryHealthTrend)}
 - Range Vs Speed: ${JSON.stringify(rangeVsSpeed)}

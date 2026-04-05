@@ -7,7 +7,9 @@ import {
     Zap,
     Wind,
     Info,
+    Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { rangeVsSpeed } from "@/lib/mock-data";
+import { useRangePredictionStore } from "@/stores/range-prediction-store";
 import {
     LineChart,
     Line,
@@ -33,8 +36,103 @@ import {
     AreaChart,
 } from "recharts";
 
+const RANGE_PREDICTION_API_BASE =
+    process.env.NEXT_PUBLIC_RANGE_PREDICTION_API_URL ??
+    "https://evlyticsbackend-production.up.railway.app";
+
+const AC_USAGE_MAP = { low: 0, medium: 1, high: 2 } as const;
+type AcUsageKey = keyof typeof AC_USAGE_MAP;
+
+async function fetchPredictedRange(body: {
+    SOC: number;
+    Temperature: number;
+    Speed: number;
+    AC_Usage: number;
+}): Promise<number> {
+    const res = await fetch(`${RANGE_PREDICTION_API_BASE.replace(/\/$/, "")}/predict`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+    const data: unknown = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        let message = res.statusText;
+        if (typeof data === "object" && data !== null && "detail" in data) {
+            const d = (data as { detail: unknown }).detail;
+            message = Array.isArray(d) ? JSON.stringify(d) : String(d);
+        }
+        throw new Error(message || `Request failed (${res.status})`);
+    }
+    if (
+        typeof data === "object" &&
+        data !== null &&
+        "predicted_range_km" in data &&
+        typeof (data as { predicted_range_km: unknown }).predicted_range_km === "number"
+    ) {
+        return (data as { predicted_range_km: number }).predicted_range_km;
+    }
+    throw new Error("Unexpected response from prediction service");
+}
+
 export default function RangePredictionPage() {
-    const [showResult, setShowResult] = useState(false);
+    const [soc, setSoc] = useState("85");
+    const [temperature, setTemperature] = useState("22");
+    const [speed, setSpeed] = useState("90");
+    const [acUsage, setAcUsage] = useState<AcUsageKey>("medium");
+    const [loading, setLoading] = useState(false);
+
+    const predictedKm = useRangePredictionStore((s) => s.predictedRangeKm);
+    const setPrediction = useRangePredictionStore((s) => s.setPrediction);
+
+    const showResult = predictedKm !== null;
+
+    async function handlePredict() {
+        const socNum = Number.parseFloat(soc);
+        const tempNum = Number.parseFloat(temperature);
+        const speedNum = Number.parseFloat(speed);
+
+        if (Number.isNaN(socNum) || socNum < 1 || socNum > 100) {
+            toast.error("State of charge must be between 1 and 100%.");
+            return;
+        }
+        if (Number.isNaN(tempNum)) {
+            toast.error("Enter a valid outside temperature (°C).");
+            return;
+        }
+        if (Number.isNaN(speedNum) || speedNum < 0) {
+            toast.error("Enter a valid average speed (km/h).");
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const km = await fetchPredictedRange({
+                SOC: Math.round(socNum),
+                Temperature: tempNum,
+                Speed: speedNum,
+                AC_Usage: AC_USAGE_MAP[acUsage],
+            });
+            setPrediction(km, {
+                soc: Math.round(socNum),
+                temperature: tempNum,
+                speed: speedNum,
+                acUsageLabel: acUsage,
+                acUsageCode: AC_USAGE_MAP[acUsage],
+            });
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : "Could not get prediction.";
+            toast.error(msg);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const displayRange =
+        predictedKm !== null
+            ? predictedKm % 1 === 0
+                ? `${Math.round(predictedKm)}`
+                : predictedKm.toFixed(1)
+            : "";
 
     return (
         <div className="space-y-8">
@@ -65,7 +163,10 @@ export default function RangePredictionPage() {
                                 <Input
                                     type="number"
                                     placeholder="85"
-                                    defaultValue="85"
+                                    min={1}
+                                    max={100}
+                                    value={soc}
+                                    onChange={(e) => setSoc(e.target.value)}
                                     className="pr-8"
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
@@ -83,7 +184,8 @@ export default function RangePredictionPage() {
                                 <Input
                                     type="number"
                                     placeholder="22"
-                                    defaultValue="22"
+                                    value={temperature}
+                                    onChange={(e) => setTemperature(e.target.value)}
                                     className="pr-8"
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
@@ -101,7 +203,9 @@ export default function RangePredictionPage() {
                                 <Input
                                     type="number"
                                     placeholder="90"
-                                    defaultValue="90"
+                                    min={0}
+                                    value={speed}
+                                    onChange={(e) => setSpeed(e.target.value)}
                                     className="pr-12"
                                 />
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
@@ -115,7 +219,10 @@ export default function RangePredictionPage() {
                                 <Wind className="h-4 w-4 text-primary" />
                                 AC Usage
                             </Label>
-                            <Select defaultValue="medium">
+                            <Select
+                                value={acUsage}
+                                onValueChange={(v: string) => setAcUsage(v as AcUsageKey)}
+                            >
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select AC usage" />
                                 </SelectTrigger>
@@ -130,9 +237,14 @@ export default function RangePredictionPage() {
                         <Button
                             className="w-full mt-4"
                             size="lg"
-                            onClick={() => setShowResult(true)}
+                            onClick={handlePredict}
+                            disabled={loading}
                         >
-                            <Gauge className="h-5 w-5 mr-2" />
+                            {loading ? (
+                                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                            ) : (
+                                <Gauge className="h-5 w-5 mr-2" />
+                            )}
                             Predict Range
                         </Button>
                     </CardContent>
@@ -152,16 +264,16 @@ export default function RangePredictionPage() {
                                     </Badge>
                                 </div>
                                 <h3 className="text-5xl font-bold gradient-text mb-2">
-                                    295 km
+                                    {displayRange} km
                                 </h3>
                                 <p className="text-lg text-muted-foreground">
                                     Predicted Range
                                 </p>
                                 <div className="mt-6 p-4 rounded-xl bg-accent/30 text-sm text-muted-foreground leading-relaxed">
                                     <Info className="h-4 w-4 inline mr-2 text-primary" />
-                                    Based on your inputs, the AI model estimates a range of 295 km.
-                                    Reducing speed by 20 km/h could increase range by approximately
-                                    45 km. Lowering AC usage to &quot;Low&quot; could add another 15 km.
+                                    Based on your inputs, the model estimates a range of {displayRange}{" "}
+                                    km. Adjust speed, temperature conditions, or AC level and run
+                                    predict again to compare scenarios.
                                 </div>
                             </CardContent>
                         </Card>
