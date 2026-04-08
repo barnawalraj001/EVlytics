@@ -45,18 +45,15 @@ export const overviewMetrics: MetricCard[] = overviewMetricsSecondary;
 
 // ── Battery Health Over Time ───────────────────────────────────
 export const batteryHealthTrend: BatteryHealthPoint[] = [
-    { month: "Jan", health: 98 },
-    { month: "Feb", health: 97.5 },
-    { month: "Mar", health: 97 },
-    { month: "Apr", health: 96.5 },
-    { month: "May", health: 96 },
-    { month: "Jun", health: 95.5 },
-    { month: "Jul", health: 95 },
-    { month: "Aug", health: 94.5 },
-    { month: "Sep", health: 94 },
-    { month: "Oct", health: 93.5 },
-    { month: "Nov", health: 93 },
-    { month: "Dec", health: 92 },
+    { month: "Jul", health: 98 },
+    { month: "Aug", health: 97.5 },
+    { month: "Sep", health: 97 },
+    { month: "Oct", health: 96.5 },
+    { month: "Nov", health: 96 },
+    { month: "Dec", health: 95.5 },
+    { month: "Jan", health: 95 },
+    { month: "Feb", health: 94.5 },
+    { month: "Mar", health: 94 },
 ];
 
 // ── ICE vs EV Emissions ────────────────────────────────────────
