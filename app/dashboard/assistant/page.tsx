@@ -163,11 +163,11 @@ export default function EVAssistantPage() {
                     <p className="text-muted-foreground mt-1">
                         Chat with our AI assistant for EV tips, range optimization, and more.
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1.5 max-w-xl">
+                    {/* <p className="text-xs text-muted-foreground mt-1.5 max-w-xl">
                         Each reply uses your live app data: Profile, last Range Prediction (and derived battery
                         health when available), fuel cost comparison, and CO₂ Savings — not demo chart trends
                         from the dashboard UI.
-                    </p>
+                    </p> */}
                 </div>
                 <Button onClick={handleNewChat} variant="outline" className="gap-2">
                     <PlusCircle className="h-4 w-4" />

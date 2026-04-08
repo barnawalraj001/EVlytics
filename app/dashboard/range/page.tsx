@@ -333,19 +333,23 @@ export default function RangePredictionPage() {
                             <ul className="space-y-2 text-sm text-muted-foreground">
                                 <li className="flex items-start gap-2">
                                     <span className="text-primary mt-0.5">•</span>
-                                    Maintaining speed at 60-70 km/h offers optimal range efficiency
+                                    Steady, moderate speeds and smooth acceleration usually stretch range
+                                    more than hard driving
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="text-primary mt-0.5">•</span>
-                                    Cold temperatures below 5°C can reduce range by up to 30%
+                                    Very cold or very hot weather can trim range; sheltering the car and
+                                    planning cabin comfort ahead of time helps
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="text-primary mt-0.5">•</span>
-                                    Using regenerative braking recovers up to 15% of energy
+                                    Regenerative braking returns energy to the pack whenever you slow
+                                    smoothly
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <span className="text-primary mt-0.5">•</span>
-                                    Pre-conditioning while plugged in saves battery for driving
+                                    Pre-conditioning while plugged in uses shore power instead of your
+                                    driving range
                                 </li>
                             </ul>
                         </CardContent>
