@@ -4,8 +4,8 @@ export interface MetricCard {
     value: string;
     unit: string;
     icon: string;
-    trend: string;
-    trendDirection: "up" | "down";
+    /** Optional small line under the value (e.g. SOC, profile context). */
+    subtitle?: string;
 }
 
 export interface BatteryHealthPoint {
@@ -36,41 +36,12 @@ export interface ChatMessage {
     timestamp: string;
 }
 
-// ── Overview Metrics ───────────────────────────────────────────
-export const overviewMetrics: MetricCard[] = [
-    {
-        title: "Current Estimated Range",
-        value: "320",
-        unit: "km",
-        icon: "Gauge",
-        trend: "+5% from last week",
-        trendDirection: "up",
-    },
-    {
-        title: "Battery Health",
-        value: "92",
-        unit: "%",
-        icon: "Battery",
-        trend: "-0.3% this month",
-        trendDirection: "down",
-    },
-    {
-        title: "CO₂ Saved This Year",
-        value: "1.2",
-        unit: "tons",
-        icon: "Leaf",
-        trend: "+18% vs last year",
-        trendDirection: "up",
-    },
-    {
-        title: "Total Distance Driven",
-        value: "14,500",
-        unit: "km",
-        icon: "Route",
-        trend: "+1,200 km this month",
-        trendDirection: "up",
-    },
-];
+// ── Overview: secondary cards (demo) + LLM snapshot ────────────
+/** Live CO₂ card is built on the dashboard from persisted CO₂ Savings results. */
+export const overviewMetricsSecondary: MetricCard[] = [];
+
+/** Passed to the assistant API as a small static slice (live values are in storesContext). */
+export const overviewMetrics: MetricCard[] = overviewMetricsSecondary;
 
 // ── Battery Health Over Time ───────────────────────────────────
 export const batteryHealthTrend: BatteryHealthPoint[] = [

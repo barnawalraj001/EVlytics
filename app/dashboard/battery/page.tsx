@@ -376,7 +376,7 @@ export default function BatteryHealthPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Battery className="h-5 w-5 text-primary" />
-                        Battery Degradation Projection (8-Year Forecast)
+                        Battery Degradation Projection (5-Year Forecast)
                     </CardTitle>
                 </CardHeader>
                 <CardContent>

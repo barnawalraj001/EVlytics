@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { systemPrompt } from "@/lib/systemPrompt";
-import {
-    overviewMetrics,
-    batteryHealthTrend,
-    rangeVsSpeed,
-    degradationProjection,
-} from "@/lib/mock-data";
 
 export const runtime = "nodejs";
 
@@ -38,11 +32,7 @@ export async function POST(req: Request) {
 
         const datasetContext = `${storesContext || "No client store snapshot."}
 
-User's EV Data Context (demo / chart data):
-- Overview Metrics: ${JSON.stringify(overviewMetrics)}
-- Battery Health Trend: ${JSON.stringify(batteryHealthTrend)}
-- Range Vs Speed: ${JSON.stringify(rangeVsSpeed)}
-- Degradation Projection: ${JSON.stringify(degradationProjection)}
+Data policy: The assistant must rely ONLY on the JSON under "App store snapshot" (profile, rangePrediction, batteryHealthEstimate, monthlyFuelComparison, monthlyFuelPetrolDefaults, co2Savings). Static demo charts (battery health over time, range vs speed, multi-year degradation) are NOT sent — do not invent or cite those series. If the user asks about trends or history you do not have, say you only see their last prediction and profile values.
 `;
 
         const payload: { role: string; content: string }[] = [

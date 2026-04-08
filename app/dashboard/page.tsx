@@ -1,26 +1,25 @@
 "use client";
 
-import React from "react";
-import {
-    Gauge,
-    Battery,
-    Leaf,
-    Route,
-    TrendingUp,
-    TrendingDown,
-    Zap,
-    Car,
-    Timer,
-    PlugZap,
-} from "lucide-react";
+import React, { useMemo } from "react";
+import { Gauge, Battery, Leaf, Car, IndianRupee } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
-    overviewMetrics,
+    overviewMetricsSecondary,
     batteryHealthTrend,
     emissionsComparison,
+    type MetricCard,
 } from "@/lib/mock-data";
 import { useProfile } from "@/hooks/use-profile";
+import { useRangePredictionStore } from "@/stores/range-prediction-store";
+import { useCo2SavingsStore } from "@/stores/co2-savings-store";
+import { rangeAt100Soc, formatKmOneDecimal } from "@/lib/range-normalization";
+import { computeBatteryHealthPercent } from "@/lib/battery-health";
+import {
+    computeMonthlyFuelComparison,
+    formatRupeesInr,
+    DEFAULT_PETROL_MILEAGE_KM_PER_L,
+    DEFAULT_PETROL_PRICE_PER_L,
+} from "@/lib/monthly-fuel-savings";
 import {
     LineChart,
     Line,
@@ -38,7 +37,6 @@ const iconMap: Record<string, React.ReactNode> = {
     Gauge: <Gauge className="h-5 w-5" />,
     Battery: <Battery className="h-5 w-5" />,
     Leaf: <Leaf className="h-5 w-5" />,
-    Route: <Route className="h-5 w-5" />,
 };
 
 const chartColors = {
@@ -68,10 +66,110 @@ const chartColors = {
 
 export default function DashboardOverview() {
     const { profile } = useProfile();
+    const predictedRangeKm = useRangePredictionStore((s) => s.predictedRangeKm);
+    const lastInputs = useRangePredictionStore((s) => s.lastInputs);
+    const rangeHydrated = useRangePredictionStore((s) => s.hydrated);
+    const co2Hydrated = useCo2SavingsStore((s) => s.hydrated);
+    const co2Last = useCo2SavingsStore((s) => s.lastResult);
+
     const greetName =
         profile.user.name?.trim().split(/\s+/)[0] ||
         profile.user.email?.split("@")[0] ||
         "there";
+
+    const overviewMetrics = useMemo((): MetricCard[] => {
+        const fullRangeKm = profile.vehicle.range;
+
+        const rangeAt100 =
+            rangeHydrated &&
+            predictedRangeKm !== null &&
+            lastInputs != null
+                ? rangeAt100Soc(predictedRangeKm, lastInputs.soc)
+                : null;
+
+        const healthPct =
+            rangeAt100 != null && fullRangeKm > 0
+                ? computeBatteryHealthPercent(fullRangeKm, rangeAt100)
+                : null;
+
+        const rangeSubtitleParts: string[] = [];
+        if (lastInputs != null) {
+            rangeSubtitleParts.push(`${lastInputs.soc}% SOC`);
+        }
+        if (fullRangeKm > 0) {
+            rangeSubtitleParts.push(`Full range (Profile): ${Math.round(fullRangeKm)} km`);
+        }
+
+        const predictedRange: MetricCard = {
+            title: "Last predicted range",
+            value:
+                predictedRangeKm != null
+                    ? formatKmOneDecimal(predictedRangeKm)
+                    : "—",
+            unit: "km",
+            icon: "Gauge",
+            subtitle:
+                rangeSubtitleParts.length > 0
+                    ? `Remaining at current charge · ${rangeSubtitleParts.join(" · ")}`
+                    : fullRangeKm > 0
+                      ? `Rated full range: ${Math.round(fullRangeKm)} km`
+                      : "Run Range Prediction & set full range in Profile",
+        };
+
+        const batteryHealth: MetricCard = {
+            title: "Battery health (est.)",
+            value:
+                healthPct != null ? `${Math.round(healthPct)}` : "—",
+            unit: "%",
+            icon: "Battery",
+            subtitle:
+                healthPct != null
+                    ? "vs Profile full range (normalized to 100% SOC)"
+                    : "Needs prediction + Profile full range",
+        };
+
+        const formatYearlyTons = (t: number) =>
+            Number.isInteger(t) ? String(t) : t.toFixed(1);
+
+        const co2Saved: MetricCard = {
+            title: "CO₂ Saved This Year",
+            value:
+                co2Hydrated && co2Last
+                    ? formatYearlyTons(co2Last.yearlyTons)
+                    : "—",
+            unit: "tons",
+            icon: "Leaf",
+            subtitle:
+                co2Hydrated && co2Last
+                    ? `vs ${co2Last.iceType} ICE · ${Math.round(co2Last.monthlyDistanceKm)} km/mo`
+                    : "Run CO₂ Savings to estimate",
+        };
+
+        return [predictedRange, batteryHealth, co2Saved, ...overviewMetricsSecondary];
+    }, [
+        profile.vehicle.range,
+        rangeHydrated,
+        predictedRangeKm,
+        lastInputs,
+        co2Hydrated,
+        co2Last,
+    ]);
+
+    const monthlyComparison = useMemo(
+        () =>
+            computeMonthlyFuelComparison({
+                monthlyKm: profile.vehicle.averageMonthlyKm,
+                batteryKwh: profile.vehicle.batteryCapacity,
+                fullRangeKm: profile.vehicle.range,
+                costPerKwh: profile.vehicle.costPerUnit,
+            }),
+        [
+            profile.vehicle.averageMonthlyKm,
+            profile.vehicle.batteryCapacity,
+            profile.vehicle.range,
+            profile.vehicle.costPerUnit,
+        ]
+    );
 
     return (
         <div className="space-y-8">
@@ -122,44 +220,58 @@ export default function DashboardOverview() {
                                     {metric.unit}
                                 </span>
                             </div>
-                            <div className="flex items-center gap-1 mt-3">
-                                {metric.trendDirection === "up" ? (
-                                    <TrendingUp className="h-4 w-4 text-emerald-400" />
-                                ) : (
-                                    <TrendingDown className="h-4 w-4 text-amber-400" />
-                                )}
-                                <span
-                                    className={`text-xs font-medium ${metric.trendDirection === "up"
-                                        ? "text-emerald-400"
-                                        : "text-amber-400"
-                                        }`}
-                                >
-                                    {metric.trend}
-                                </span>
-                            </div>
+                            {metric.subtitle ? (
+                                <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
+                                    {metric.subtitle}
+                                </p>
+                            ) : null}
                         </CardContent>
                     </Card>
                 ))}
-            </div>
-
-            {/* Quick EV Stats Row */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                    { icon: <Timer className="h-4 w-4" />, label: "Avg. Charge Time", value: "4.2 hrs", sub: "Level 2 AC" },
-                    { icon: <PlugZap className="h-4 w-4" />, label: "Charging Cost/mo", value: "₹1,850", sub: "vs ₹8,400 fuel" },
-                    { icon: <Car className="h-4 w-4" />, label: "Efficiency", value: "152 Wh/km", sub: "Last 30 days" },
-                ].map((stat) => (
-                    <Card key={stat.label} className="bg-accent/30 border-border/30">
-                        <CardContent className="p-4">
-                            <div className="flex items-center gap-2 text-primary mb-2">
-                                {stat.icon}
-                                <span className="text-xs font-medium text-muted-foreground">{stat.label}</span>
+                <Card className="relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-8 translate-x-8 group-hover:bg-primary/10 transition-colors" />
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-muted-foreground text-sm font-medium">
+                                Monthly comparison
+                            </span>
+                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                <IndianRupee className="h-5 w-5" />
                             </div>
-                            <p className="text-lg font-bold">{stat.value}</p>
-                            <p className="text-xs text-muted-foreground">{stat.sub}</p>
-                        </CardContent>
-                    </Card>
-                ))}
+                        </div>
+                        {monthlyComparison ? (
+                            <div className="space-y-3">
+                                <div className="flex items-baseline justify-between gap-2">
+                                    <span className="text-sm text-muted-foreground">EV cost</span>
+                                    <span className="text-xl font-bold tabular-nums">
+                                        {formatRupeesInr(monthlyComparison.evMonthly)}
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline justify-between gap-2">
+                                    <span className="text-sm text-muted-foreground">Petrol cost</span>
+                                    <span className="text-xl font-bold tabular-nums">
+                                        {formatRupeesInr(monthlyComparison.petrolMonthly)}
+                                    </span>
+                                </div>
+                                <div className="flex items-baseline justify-between gap-2 border-t border-border/60 pt-3">
+                                    <span className="text-sm font-medium text-primary">Savings</span>
+                                    <span className="text-2xl font-bold tabular-nums text-primary">
+                                        {formatRupeesInr(monthlyComparison.savings)}
+                                    </span>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                Set full range, battery (kWh), monthly km, and ₹/kWh in Profile to
+                                estimate EV vs petrol for your driving.
+                            </p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
+                            Petrol baseline: {DEFAULT_PETROL_MILEAGE_KM_PER_L} km/l ·{" "}
+                            {formatRupeesInr(DEFAULT_PETROL_PRICE_PER_L)}/l
+                        </p>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Charts Row */}

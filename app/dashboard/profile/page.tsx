@@ -13,6 +13,7 @@ import {
     Save,
     X,
     IndianRupee,
+    Route,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +35,10 @@ import {
     defaultEvlyticsProfile,
 } from "@/lib/evlytics-profile";
 import { cn } from "@/lib/utils";
+import {
+    MVP_VEHICLE_PRESETS,
+    matchMvpPresetId,
+} from "@/lib/vehicle-presets";
 
 function cloneProfile(p: EvlyticsProfile): EvlyticsProfile {
     return {
@@ -43,8 +48,13 @@ function cloneProfile(p: EvlyticsProfile): EvlyticsProfile {
 }
 
 function validateProfile(p: EvlyticsProfile): string | null {
-    const { batteryCapacity, range, costPerUnit } = p.vehicle;
-    if (batteryCapacity < 0 || range < 0 || costPerUnit < 0) {
+    const { batteryCapacity, range, costPerUnit, averageMonthlyKm } = p.vehicle;
+    if (
+        batteryCapacity < 0 ||
+        range < 0 ||
+        costPerUnit < 0 ||
+        averageMonthlyKm < 0
+    ) {
         return "Numeric values cannot be negative.";
     }
     if (p.vehicle.efficiency < 0) {
@@ -68,6 +78,11 @@ export default function ProfilePage() {
         return computeEfficiency(draft.vehicle.range, draft.vehicle.batteryCapacity);
     }, [draft.vehicle.range, draft.vehicle.batteryCapacity]);
 
+    const selectedVehiclePresetId = useMemo(
+        () => matchMvpPresetId(draft.vehicle) ?? "custom",
+        [draft.vehicle.model, draft.vehicle.batteryCapacity, draft.vehicle.range]
+    );
+
     const startEdit = () => {
         setDraft(cloneProfile(profile));
         setEditing(true);
@@ -87,6 +102,7 @@ export default function ProfilePage() {
                 batteryCapacity: clampNonNegative(draft.vehicle.batteryCapacity),
                 range: clampNonNegative(draft.vehicle.range),
                 costPerUnit: clampNonNegative(draft.vehicle.costPerUnit),
+                averageMonthlyKm: clampNonNegative(draft.vehicle.averageMonthlyKm),
                 efficiency: computeEfficiency(
                     clampNonNegative(draft.vehicle.range),
                     clampNonNegative(draft.vehicle.batteryCapacity)
@@ -256,6 +272,52 @@ export default function ProfilePage() {
                 <CardContent className="space-y-4 pt-2">
                     <div className="grid sm:grid-cols-2 gap-4">
                         <div className="space-y-2 sm:col-span-2">
+                            <Label htmlFor="vehicle-preset">Recommended vehicle (MVP)</Label>
+                            <Select
+                                value={selectedVehiclePresetId}
+                                disabled={disabled}
+                                onValueChange={(id) => {
+                                    if (id === "custom") return;
+                                    const preset = MVP_VEHICLE_PRESETS.find((p) => p.id === id);
+                                    if (!preset) return;
+                                    setDraft((d) => {
+                                        const range = preset.rangeKm;
+                                        const batteryCapacity = preset.batteryKwh;
+                                        return {
+                                            ...d,
+                                            vehicle: {
+                                                ...d.vehicle,
+                                                model: preset.model,
+                                                batteryCapacity,
+                                                range,
+                                                efficiency: computeEfficiency(
+                                                    range,
+                                                    batteryCapacity
+                                                ),
+                                            },
+                                        };
+                                    });
+                                }}
+                            >
+                                <SelectTrigger id="vehicle-preset" className="w-full">
+                                    <SelectValue placeholder="Choose a preset or enter manually below" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="custom">
+                                        Custom — enter model and specs below
+                                    </SelectItem>
+                                    {MVP_VEHICLE_PRESETS.map((p) => (
+                                        <SelectItem key={p.id} value={p.id}>
+                                            {p.label} (~{p.batteryKwh} kWh · ~{p.rangeKm} km)
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <p className="text-xs text-muted-foreground">
+                                Picking a preset fills battery and range; you can still edit any field.
+                            </p>
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
                             <Label htmlFor="model">Vehicle model</Label>
                             <Input
                                 id="model"
@@ -401,6 +463,36 @@ export default function ProfilePage() {
                                     }));
                                 }}
                             />
+                        </div>
+                        <div className="space-y-2 sm:col-span-2">
+                            <Label htmlFor="avg-monthly" className="flex items-center gap-2">
+                                <Route className="h-3.5 w-3.5 text-muted-foreground" />
+                                Average monthly distance (km)
+                            </Label>
+                            <Input
+                                id="avg-monthly"
+                                type="number"
+                                min={0}
+                                step={1}
+                                placeholder="1200"
+                                value={draft.vehicle.averageMonthlyKm}
+                                disabled={disabled}
+                                onChange={(e) => {
+                                    const v = parseFloat(e.target.value);
+                                    setDraft((d) => ({
+                                        ...d,
+                                        vehicle: {
+                                            ...d.vehicle,
+                                            averageMonthlyKm: Number.isNaN(v)
+                                                ? 0
+                                                : clampNonNegative(v),
+                                        },
+                                    }));
+                                }}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Used for monthly EV vs petrol cost estimates on the dashboard.
+                            </p>
                         </div>
                     </div>
                 </CardContent>

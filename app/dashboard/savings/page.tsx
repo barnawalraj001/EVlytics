@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     Leaf,
     TreePine,
@@ -24,6 +24,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { co2MonthlyComparison } from "@/lib/mock-data";
 import {
+    calculateCo2Savings,
+    PETROL_G_PER_KM,
+    DIESEL_G_PER_KM,
+    EV_G_PER_KM,
+    TREE_KG_CO2_PER_YEAR,
+    type IceType,
+} from "@/lib/co2-savings";
+import { useCo2SavingsStore } from "@/stores/co2-savings-store";
+import {
     BarChart,
     Bar,
     XAxis,
@@ -34,37 +43,30 @@ import {
     Legend,
 } from "recharts";
 
-const PETROL_G_PER_KM = 120;
-const DIESEL_G_PER_KM = 130;
-const EV_G_PER_KM = 20;
-const TREE_KG_CO2_PER_YEAR = 21.7;
-
-type IceType = "petrol" | "diesel";
-
-function getIceEmissionGPerKm(type: IceType): number {
-    return type === "petrol" ? PETROL_G_PER_KM : DIESEL_G_PER_KM;
-}
-
-function calculateSavings(distanceKm: number, iceType: IceType) {
-    const ice = getIceEmissionGPerKm(iceType);
-    const monthlySavedKg = ((ice - EV_G_PER_KM) * distanceKm) / 1000;
-    const yearlySavedTons = (monthlySavedKg * 12) / 1000;
-    const trees = (monthlySavedKg * 12) / TREE_KG_CO2_PER_YEAR;
-
-    return {
-        monthlyKg: Math.round(monthlySavedKg),
-        yearlyTons: Math.round(yearlySavedTons * 10) / 10,
-        trees: Math.round(trees),
-    };
-}
-
 export default function CO2SavingsPage() {
     const [distanceInput, setDistanceInput] = useState("1200");
     const [iceType, setIceType] = useState<IceType>("petrol");
     const [results, setResults] = useState<ReturnType<
-        typeof calculateSavings
+        typeof calculateCo2Savings
     > | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    const hydrated = useCo2SavingsStore((s) => s.hydrated);
+    const setLastResult = useCo2SavingsStore((s) => s.setLastResult);
+
+    useEffect(() => {
+        if (!hydrated) return;
+        const lr = useCo2SavingsStore.getState().lastResult;
+        if (lr) {
+            setDistanceInput(String(lr.monthlyDistanceKm));
+            setIceType(lr.iceType);
+            setResults({
+                monthlyKg: lr.monthlyKg,
+                yearlyTons: lr.yearlyTons,
+                trees: lr.trees,
+            });
+        }
+    }, [hydrated]);
 
     const handleCalculate = () => {
         setError(null);
@@ -74,7 +76,13 @@ export default function CO2SavingsPage() {
             setResults(null);
             return;
         }
-        setResults(calculateSavings(distance, iceType));
+        const computed = calculateCo2Savings(distance, iceType);
+        setResults(computed);
+        setLastResult({
+            monthlyDistanceKm: distance,
+            iceType,
+            ...computed,
+        });
     };
 
     return (

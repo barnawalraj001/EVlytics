@@ -16,6 +16,8 @@ export interface EvlyticsVehicle {
     efficiency: number;
     chargingType: ChargingType;
     costPerUnit: number;
+    /** Average distance driven per month (km), for cost / savings estimates. */
+    averageMonthlyKm: number;
 }
 
 export interface EvlyticsProfile {
@@ -37,6 +39,7 @@ export function defaultEvlyticsProfile(): EvlyticsProfile {
             efficiency: 7.5,
             chargingType: "Normal",
             costPerUnit: 8,
+            averageMonthlyKm: 1200,
         },
     };
 }
@@ -79,6 +82,11 @@ function mergeVehicle(base: EvlyticsVehicle, partial?: unknown): EvlyticsVehicle
             typeof partial.costPerUnit === "number" && !Number.isNaN(partial.costPerUnit)
                 ? partial.costPerUnit
                 : base.costPerUnit,
+        averageMonthlyKm:
+            typeof partial.averageMonthlyKm === "number" &&
+            !Number.isNaN(partial.averageMonthlyKm)
+                ? partial.averageMonthlyKm
+                : base.averageMonthlyKm,
     };
 }
 

@@ -7,6 +7,9 @@ export type AssistantChatMessage = {
 
 /**
  * Calls the server-side assistant API. OpenAI runs only on the server — never bundle the key in the browser.
+ * Each request includes `storesContext` from `buildStoresContextForLlm` (stores/llm-context): profile,
+ * range prediction, derived **batteryHealthEstimate** when possible, **monthlyFuelComparison**, **co2Savings**.
+ * No static mock chart series are sent to the server — only live store data.
  */
 export async function askEVAssistant(
     chatHistory: AssistantChatMessage[]
