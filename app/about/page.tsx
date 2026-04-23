@@ -64,7 +64,7 @@ const problems = [
 const team = [
     {
         name: "Raj Barnawal",
-        role: "AI & Backend Developer",
+        role: "AI & Full Stack Developer",
         linkedin: "https://www.linkedin.com/in/barnawalraj001/",
     },
     {
@@ -72,14 +72,14 @@ const team = [
         role: "ML & Backend Engineer",
         linkedin: "https://www.linkedin.com/in/ali-azhar-arman-114494254/",
     },
-    {  
-        name: "Kanchan Kiran",
-        role: "Frontend Developer",
-        linkedin: "https://www.linkedin.com/in/kanchankiran/",
-    },
+    // {  
+    //     name: "Kanchan Kiran",
+    //     role: "Frontend Developer",
+    //     linkedin: "https://www.linkedin.com/in/kanchankiran/",
+    // },
     {
-        name: "Ashish Bhardwaj",
-        role: "Full stack Developer",
+        name: "Lawmzuala Ralte",
+        role: "UI Designer & Data Analyst",
         linkedin: "https://www.linkedin.com/feed",
     },
 ] as const;
