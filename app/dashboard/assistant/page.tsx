@@ -281,8 +281,7 @@ export default function EVAssistantPage() {
                         </Button>
                     </div>
                     <p className="text-[10px] text-muted-foreground text-center mt-2">
-                        EVlytics AI may produce inaccurate information. This is a demo
-                        interface.
+                        EVlytics AI may produce inaccurate information. This is in Protocol phase.
                     </p>
                 </div>
             </Card>
