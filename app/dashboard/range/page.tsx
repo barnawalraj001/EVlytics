@@ -40,7 +40,7 @@ import {
 
 const RANGE_PREDICTION_API_BASE =
     process.env.NEXT_PUBLIC_RANGE_PREDICTION_API_URL ??
-    "https://evlyticsbackend-production.up.railway.app";
+    "https://evlyticsbackend-production-1d1b.up.railway.app";
 
 const AC_USAGE_MAP = { low: 0, medium: 1, high: 2 } as const;
 type AcUsageKey = keyof typeof AC_USAGE_MAP;
