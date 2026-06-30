@@ -64,12 +64,12 @@ const problems = [
 const team = [
     {
         name: "Raj Barnawal",
-        role: "AI & Full Stack Developer",
+        role: "AI & ML Developer",
         linkedin: "https://www.linkedin.com/in/barnawalraj001/",
     },
     {
         name: "Ali Azhar Arman",
-        role: "ML & Backend Engineer",
+        role: "Full Stack Engineer",
         linkedin: "https://www.linkedin.com/in/ali-azhar-arman-114494254/",
     },
     // {  
@@ -77,11 +77,11 @@ const team = [
     //     role: "Frontend Developer",
     //     linkedin: "https://www.linkedin.com/in/kanchankiran/",
     // },
-    {
-        name: "Lawmzuala Ralte",
-        role: "UI Designer & Data Analyst",
-        linkedin: "https://www.linkedin.com/feed",
-    },
+    // {
+    //     name: "Lawmzuala Ralte",
+    //     role: "UI Designer & Data Analyst",
+    //     linkedin: "https://www.linkedin.com/feed",
+    // },
 ] as const;
 
 function SectionShell({
@@ -264,7 +264,7 @@ export default function AboutPage() {
                             <Users className="h-5 w-5" />
                         </div>
                         <h2 className="text-2xl sm:text-3xl font-bold text-center sm:text-left">
-                            Meet the <span className="gradient-text">Team</span>
+                            Meet the <span className="gradient-text">Developer</span>
                         </h2>
                     </div>
                     <div className="grid sm:grid-cols-3 gap-6 lg:gap-8">
